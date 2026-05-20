@@ -150,10 +150,34 @@ open_ui() {
   fi
 }
 
+# ── codespaces origin helper ──────────────────────────────────────────────────
+# Returns the https:// origin of this codespace (empty if not in Codespaces).
+codespace_origin() {
+  if [ -n "${CODESPACE_NAME:-}" ] && [ -n "${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-}" ]; then
+    local port="${OPENCLAW_PORT:-18789}"
+    echo "https://${CODESPACE_NAME}-${port}.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}"
+  fi
+}
+
+# Add the Codespaces origin to gateway.controlUi.allowedOrigins so the
+# browser Control UI is not blocked by the gateway's CORS check.
+configure_allowed_origins() {
+  local origin
+  origin=$(codespace_origin)
+  [ -n "$origin" ] || return 0   # not in Codespaces — nothing to do
+
+  info "Allowing Control UI origin: $origin"
+  openclaw configure set gateway.controlUi.allowedOrigins "$origin" 2>/dev/null || \
+    warn "Could not set allowedOrigins automatically — add '$origin' manually via: openclaw configure"
+}
+
 # ── step 2 : start gateway ────────────────────────────────────────────────────
 start_gateway() {
   local port="${OPENCLAW_PORT:-18789}"
   section "Step 2 — Starting OpenClaw Gateway (port $port)"
+
+  # Ensure the Codespaces origin is whitelisted before starting
+  configure_allowed_origins
 
   # Check if already running
   if openclaw gateway status 2>/dev/null | grep -qi "running"; then
@@ -179,6 +203,23 @@ start_gateway() {
   else
     warn "Gateway may not have started yet — check /tmp/openclaw-gateway.log"
   fi
+}
+
+# ── fix origins (standalone) ─────────────────────────────────────────────────
+fix_origins() {
+  section "Fix Control UI Allowed Origins"
+  configure_allowed_origins
+  info "Restarting gateway to apply origin change..."
+  openclaw gateway restart 2>/dev/null || {
+    warn "Could not restart via 'openclaw gateway restart'. Stopping and starting manually..."
+    openclaw gateway stop 2>/dev/null || true
+    sleep 1
+    local port="${OPENCLAW_PORT:-18789}"
+    nohup openclaw gateway --port "$port" >> /tmp/openclaw-gateway.log 2>&1 &
+    echo $! > /tmp/openclaw-gateway.pid
+    sleep 2
+  }
+  open_ui
 }
 
 # ── step 3 : check gateway status ─────────────────────────────────────────────
@@ -220,6 +261,7 @@ Options:
   --start            Start the gateway and print the auto-auth URL
   --status           Show gateway status
   --open             Print (and copy) the auto-auth browser URL
+  --fix-origins      Add Codespaces origin to allowedOrigins and restart gateway
   --login-whatsapp   Log in via WhatsApp
   --configure-model  Select AI model interactively
   --all              Run all steps in sequence (default)
@@ -245,7 +287,8 @@ EOF
 # ── main ──────────────────────────────────────────────────────────────────────
 main() {
   local do_install=false do_start=false do_status=false
-  local do_whatsapp=false do_model=false do_all=false do_open=false
+  local do_whatsapp=false do_model=false do_all=false
+  local do_open=false do_fix_origins=false
 
   if [ $# -eq 0 ]; then do_all=true; fi
 
@@ -255,6 +298,7 @@ main() {
       --start)            do_start=true ;;
       --status)           do_status=true ;;
       --open)             do_open=true ;;
+      --fix-origins)      do_fix_origins=true ;;
       --login-whatsapp)   do_whatsapp=true ;;
       --configure-model)  do_model=true ;;
       --all)              do_all=true ;;
@@ -274,6 +318,7 @@ main() {
   $do_start         && start_gateway
   $do_status        && check_status
   $do_open          && open_ui
+  $do_fix_origins   && fix_origins
   $do_whatsapp      && login_whatsapp
   $do_model         && configure_model
 
