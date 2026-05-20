@@ -23,7 +23,7 @@ install_openclaw() {
 
   need_cmd curl
   info "Downloading and running OpenClaw installer..."
-  curl -fsSL https://openclaw.ai/install.sh | bash
+  curl -fsSL --connect-timeout 15 --max-time 120 https://openclaw.ai/install.sh | bash
 
   # Make sure the binary is on PATH for the rest of this script
   export PATH="$HOME/.local/bin:$HOME/bin:$PATH"

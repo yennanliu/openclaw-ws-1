@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# postCreate.sh — runs automatically when a GitHub Codespace is created
+# postCreate.sh — runs automatically when a GitHub Codespace is created.
+# Intentionally lightweight: only installs system packages and wires up
+# scripts. The openclaw install is left to the user to avoid a silent
+# hang if openclaw.ai is slow or unreachable during container creation.
 set -euo pipefail
 
 echo "==> Installing system dependencies..."
@@ -11,23 +14,24 @@ sudo apt-get install -y --no-install-recommends \
 
 echo "==> Making scripts executable..."
 chmod +x scripts/setup-openclaw.sh
-
-echo "==> Installing OpenClaw AI gateway..."
-bash scripts/setup-openclaw.sh --install
+chmod +x scripts/test-setup-openclaw.sh
 
 echo ""
-echo "┌─────────────────────────────────────────────────────┐"
-echo "│  OpenClaw is installed. Next steps:                 │"
-echo "│                                                     │"
-echo "│  1. Start the gateway (port 18789, forwarded):      │"
-echo "│     bash scripts/setup-openclaw.sh --start          │"
-echo "│                                                     │"
-echo "│  2. Log in with WhatsApp:                           │"
-echo "│     bash scripts/setup-openclaw.sh --login-whatsapp │"
-echo "│                                                     │"
-echo "│  3. Choose your AI model:                           │"
-echo "│     bash scripts/setup-openclaw.sh --configure-model│"
-echo "│                                                     │"
-echo "│  Or run everything at once:                         │"
-echo "│     bash scripts/setup-openclaw.sh --all            │"
-echo "└─────────────────────────────────────────────────────┘"
+echo "┌──────────────────────────────────────────────────────────┐"
+echo "│  Codespace is ready. Open a terminal and run:            │"
+echo "│                                                          │"
+echo "│  # Step 1 — install OpenClaw                            │"
+echo "│  bash scripts/setup-openclaw.sh --install               │"
+echo "│                                                          │"
+echo "│  # Step 2 — start gateway (port 18789, auto-forwarded)  │"
+echo "│  bash scripts/setup-openclaw.sh --start                 │"
+echo "│                                                          │"
+echo "│  # Step 3 — WhatsApp login (interactive)                │"
+echo "│  bash scripts/setup-openclaw.sh --login-whatsapp        │"
+echo "│                                                          │"
+echo "│  # Step 4 — pick AI model (interactive)                 │"
+echo "│  bash scripts/setup-openclaw.sh --configure-model       │"
+echo "│                                                          │"
+echo "│  Or do everything at once:                               │"
+echo "│  bash scripts/setup-openclaw.sh --all                   │"
+echo "└──────────────────────────────────────────────────────────┘"

@@ -21,11 +21,11 @@ A GitHub Codespaces workspace for running the [OpenClaw](https://openclaw.ai) AI
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/yennanliu/openclaw-ws-1)
 
 1. Click **Code → Codespaces → Create codespace on main** (or the badge above).
-2. Wait for the container to build — OpenClaw is installed automatically via `postCreate.sh`.
-3. Open a terminal (`Ctrl+\`` or **Terminal → New Terminal**) and launch:
+2. Wait for the container to build — system packages are installed automatically. This should finish in under a minute.
+3. Open a terminal (`Ctrl+\`` or **Terminal → New Terminal**) and run:
 
 ```bash
-# Full setup: start gateway → WhatsApp login → model selection
+# Full setup: install → start gateway → WhatsApp login → model selection
 bash scripts/setup-openclaw.sh --all
 ```
 
@@ -33,8 +33,10 @@ bash scripts/setup-openclaw.sh --all
 
 ## Launching OpenClaw after Codespace is Ready
 
-`postCreate.sh` runs automatically during container creation and installs OpenClaw,
-but it does **not** start the gateway or run interactive steps (those require a live terminal).
+`postCreate.sh` runs automatically during container creation. It only installs system
+packages (`curl`, `ca-certificates`, `jq`) — the OpenClaw install itself is **not**
+run automatically to avoid a silent hang if `openclaw.ai` is slow or unreachable
+during container startup.
 
 Once the codespace is ready, open a terminal and run:
 
