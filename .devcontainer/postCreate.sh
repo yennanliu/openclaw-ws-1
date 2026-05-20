@@ -1,30 +1,33 @@
 #!/usr/bin/env bash
+# postCreate.sh — runs automatically when a GitHub Codespace is created
 set -euo pipefail
 
-echo "==> Installing OpenClaw build dependencies..."
+echo "==> Installing system dependencies..."
 sudo apt-get update -qq
 sudo apt-get install -y --no-install-recommends \
-  build-essential \
-  cmake \
-  git \
-  libsdl2-dev \
-  libsdl2-image-dev \
-  libsdl2-mixer-dev \
-  libsdl2-ttf-dev \
-  libsdl2-gfx-dev \
-  libboost-dev \
-  timidity \
-  freepats
+  curl \
+  ca-certificates \
+  jq
 
-echo "==> Cloning OpenClaw..."
-git clone --depth 1 https://github.com/pjasicek/OpenClaw.git
+echo "==> Making scripts executable..."
+chmod +x scripts/setup-openclaw.sh
 
-echo "==> Configuring build..."
-cmake -S OpenClaw -B build -DCMAKE_BUILD_TYPE=Release
+echo "==> Installing OpenClaw AI gateway..."
+bash scripts/setup-openclaw.sh --install
 
 echo ""
-echo "Done! To build OpenClaw run:"
-echo "  cmake --build build -j\$(nproc)"
-echo ""
-echo "NOTE: You still need the original CLAW.REZ game asset to play."
-echo "See OpenClaw/README.md for details."
+echo "┌─────────────────────────────────────────────────────┐"
+echo "│  OpenClaw is installed. Next steps:                 │"
+echo "│                                                     │"
+echo "│  1. Start the gateway (port 18789, forwarded):      │"
+echo "│     bash scripts/setup-openclaw.sh --start          │"
+echo "│                                                     │"
+echo "│  2. Log in with WhatsApp:                           │"
+echo "│     bash scripts/setup-openclaw.sh --login-whatsapp │"
+echo "│                                                     │"
+echo "│  3. Choose your AI model:                           │"
+echo "│     bash scripts/setup-openclaw.sh --configure-model│"
+echo "│                                                     │"
+echo "│  Or run everything at once:                         │"
+echo "│     bash scripts/setup-openclaw.sh --all            │"
+echo "└─────────────────────────────────────────────────────┘"

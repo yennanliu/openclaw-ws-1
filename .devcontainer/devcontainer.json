@@ -9,6 +9,14 @@
     }
   },
 
+  "forwardPorts": [18789],
+  "portsAttributes": {
+    "18789": {
+      "label": "OpenClaw Gateway",
+      "onAutoForward": "notify"
+    }
+  },
+
   "postCreateCommand": "bash .devcontainer/postCreate.sh",
 
   "customizations": {
@@ -17,10 +25,7 @@
         "ms-vscode.cpptools",
         "ms-vscode.cmake-tools",
         "twxs.cmake"
-      ],
-      "settings": {
-        "cmake.buildDirectory": "${workspaceFolder}/build"
-      }
+      ]
     }
   },
 
