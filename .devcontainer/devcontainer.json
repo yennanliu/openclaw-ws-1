@@ -13,7 +13,8 @@
   "portsAttributes": {
     "18789": {
       "label": "OpenClaw Gateway",
-      "onAutoForward": "notify"
+      "onAutoForward": "openBrowser",
+      "visibility": "public"
     }
   },
 
