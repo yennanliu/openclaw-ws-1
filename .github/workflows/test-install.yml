@@ -1,0 +1,96 @@
+name: Test OpenClaw Setup Script
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Allow manual trigger with option to run the real install
+  workflow_dispatch:
+    inputs:
+      run_integration:
+        description: 'Run integration test (hits openclaw.ai for real install)'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['true', 'false']
+
+jobs:
+  # ── Job 1: shellcheck all bash scripts ──────────────────────────────────────
+  lint:
+    name: Shellcheck
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get install -y --no-install-recommends shellcheck
+
+      - name: Lint scripts
+        run: |
+          shellcheck \
+            scripts/setup-openclaw.sh \
+            scripts/test-setup-openclaw.sh \
+            .devcontainer/postCreate.sh
+
+  # ── Job 2: unit tests with mocked openclaw binary ───────────────────────────
+  unit-test:
+    name: Unit Tests (mocked)
+    runs-on: ubuntu-22.04
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Make scripts executable
+        run: chmod +x scripts/setup-openclaw.sh scripts/test-setup-openclaw.sh
+
+      - name: Run unit tests
+        run: bash scripts/test-setup-openclaw.sh
+
+  # ── Job 3: real install against openclaw.ai (push to main or manual) ────────
+  integration-test:
+    name: Integration Test (real install)
+    runs-on: ubuntu-22.04
+    needs: unit-test
+    # Run on push to main OR when manually triggered with run_integration=true
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.run_integration == 'true')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends curl ca-certificates
+
+      - name: Install OpenClaw via setup script
+        run: bash scripts/setup-openclaw.sh --install
+
+      - name: Verify openclaw binary is on PATH
+        run: |
+          export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+          command -v openclaw
+          openclaw --version || true
+
+      - name: Check gateway status (pre-start)
+        run: |
+          export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+          bash scripts/setup-openclaw.sh --status || true
+
+      - name: Start gateway
+        run: |
+          export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+          bash scripts/setup-openclaw.sh --start
+
+      - name: Verify gateway is running
+        run: |
+          export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+          bash scripts/setup-openclaw.sh --status
+
+      - name: Check WhatsApp endpoint reachability
+        run: curl -IsS --max-time 10 https://web.whatsapp.com/ | head -1
+
+      - name: Show gateway log
+        if: always()
+        run: cat /tmp/openclaw-gateway.log 2>/dev/null || echo "(no log found)"
